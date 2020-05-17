@@ -1,0 +1,25 @@
+name: Rust audit
+on:
+  # audit any time dependencies are changed
+  push:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+
+  # audit weekly to catch new issues with existing dependencies
+  schedule:
+    - cron: "0 0 * * SUN"
+
+jobs:
+  audit:
+    name: Audit project dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@master
+      - name: Audit dependencies
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

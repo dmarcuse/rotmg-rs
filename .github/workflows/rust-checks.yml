@@ -1,0 +1,25 @@
+name: Rust checks
+on: [push]
+
+jobs:
+  check:
+    name: Check project
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@master
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+      - name: Run unit tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check --color always

@@ -12,6 +12,39 @@ pub struct Codec {
     send_rc4: Rc4,
 }
 
+impl Codec {
+    fn create_ciphers(keys: &[u8]) -> (Rc4, Rc4) {
+        assert!(!keys.is_empty(), "key cannot be empty");
+        assert_eq!(keys.len() % 2, 0, "key length must be even");
+
+        let (key0, key1) = keys.split_at(keys.len() / 2);
+        (Rc4::new(key0), Rc4::new(key1))
+    }
+
+    /// Create a new codec with the given RC4 keys, as a server.
+    ///
+    /// The raw binary keys should be used, decoded from hexadecimal.
+    pub fn new_as_server(keys: &[u8]) -> Self {
+        let (recv_rc4, send_rc4) = Self::create_ciphers(keys);
+        Self { recv_rc4, send_rc4 }
+    }
+
+    /// Create a new codec with the given RC4 keys, as a client.
+    ///
+    /// The raw binary keys should be used, decoded from hexadecimal.
+    pub fn new_as_client(keys: &[u8]) -> Self {
+        let (send_rc4, recv_rc4) = Self::create_ciphers(keys);
+        Self { recv_rc4, send_rc4 }
+    }
+
+    pub(crate) fn clone(&self) -> Self {
+        Self {
+            recv_rc4: self.recv_rc4.clone(),
+            send_rc4: self.send_rc4.clone(),
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum CodecError {
     #[error("IO error")]

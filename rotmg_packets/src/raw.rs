@@ -1,3 +1,5 @@
+use bytes::{Buf, Bytes};
+
 /// A raw ROTMG network packet
 ///
 /// Packets consist of the following three parts, from beginning to end:
@@ -6,23 +8,27 @@
 /// - Packet contents (all remaining bytes)
 // TODO: investigate using smallvec here to reduce heap usage
 #[derive(PartialEq, Eq)]
-pub struct RawPacket(Box<[u8]>);
+pub struct RawPacket(Bytes);
 
 impl RawPacket {
     /// Create a new `RawPacket` from the given bytes.
     ///
-    /// This function will panic if the provided data is less than 5 bytes long.
-    pub fn new(bytes: Box<[u8]>) -> Self {
-        assert!(
-            bytes.len() >= 5,
-            "invalid packet length: {} < 5",
-            bytes.len()
+    /// This function will panic if the provided data is less than 5 bytes long,
+    /// or if the length doesn't match the one encoded in the packet data.
+    pub fn new(data: Bytes) -> Self {
+        assert!(data.len() >= 5, "invalid packet length: {} < 5", data.len());
+
+        assert_eq!(
+            data.len(),
+            data.bytes().get_u32() as usize,
+            "actual packet length doesn't match length encoded in contents"
         );
-        Self(bytes)
+
+        Self(data)
     }
 
     /// Unwrap this packet into the underlying bytes
-    pub fn into_bytes(self) -> Box<[u8]> {
+    pub fn into_bytes(self) -> Bytes {
         self.0
     }
 

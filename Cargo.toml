@@ -1,4 +1,10 @@
 [workspace]
 members = [
-	"rotmg_packets"
+	"rotmg_packets",
+	"rotmg_networking",
 ]
+
+# don't include debug symbols for dependencies, even in debug mode
+# this substantially reduces debug mode binary sizes
+[profile.dev.package."*"]
+debug = false

@@ -4,9 +4,10 @@ use rotmg_packets::RawPacket;
 use std::io;
 use tokio_util::codec::{Decoder, Encoder};
 
-/// A codec for framing and encrypting/decrypting packets from a ROTMG network
-/// connection. This can be used for either the client or the server end of the
-/// connection.
+/// ROTMG network connection codec.
+///
+/// This codec frames ROTMG packets and handles encryption/decryption of packet
+/// payloads.
 pub struct Codec {
     recv_rc4: Rc4,
     send_rc4: Rc4,
@@ -35,13 +36,6 @@ impl Codec {
     pub fn new_as_client(keys: &[u8]) -> Self {
         let (send_rc4, recv_rc4) = Self::create_ciphers(keys);
         Self { recv_rc4, send_rc4 }
-    }
-
-    pub(crate) fn clone(&self) -> Self {
-        Self {
-            recv_rc4: self.recv_rc4.clone(),
-            send_rc4: self.send_rc4.clone(),
-        }
     }
 }
 

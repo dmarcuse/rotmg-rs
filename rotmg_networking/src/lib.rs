@@ -1,14 +1,11 @@
-pub mod codec;
-pub mod policy;
-pub mod rc4;
+mod codec;
+mod policy;
+mod rc4;
 
-use codec::Codec;
-use futures::TryStreamExt;
-use policy::PolicyFile;
+pub use codec::Codec;
+pub use policy::PolicyFile;
 use std::io;
-
-use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use tokio::stream::Stream;
+use tokio::net::{TcpStream, ToSocketAddrs};
 use tokio_util::codec::{Decoder, Framed};
 
 /// A framed ROTMG network connection
@@ -21,28 +18,21 @@ pub async fn connect(address: impl ToSocketAddrs, keys: &[u8]) -> io::Result<Con
     Ok(Codec::new_as_client(keys).framed(TcpStream::connect(address).await?))
 }
 
-/// Listen for incoming ROTMG network connections using the given RC4 keys, as a
-/// server.
+/// Accept an incoming client connection, framing it as a ROTMG connection.
 ///
 /// The raw binary keys should be used, decoded from hexadecimal.
 ///
-/// A policy file may also be provided, which will be used to handle and filter
-/// out any flash policy file requests.
-#[allow(clippy::needless_lifetimes)] // false positive on lint here
-pub async fn listen<'a>(
-    address: impl ToSocketAddrs,
+/// This method will automatically detect and handle policy file requests using
+/// the given policy file. A timeout should be used to avoid malicious
+/// connections that intentionally never close. When a policy file request is
+/// handled, `None` will be returned instead of a framed connection.
+pub async fn accept(
+    connection: TcpStream,
     keys: &[u8],
-    policy: Option<&'a PolicyFile>,
-) -> io::Result<impl Stream<Item = io::Result<Connection>> + 'a> {
-    let codec = Codec::new_as_server(keys);
-
-    Ok(TcpListener::bind(address)
-        .await?
-        .try_filter_map(move |c| async move {
-            match policy {
-                None => Ok(Some(c)),
-                Some(p) => p.handle_connection(c).await,
-            }
-        })
-        .map_ok(move |c| codec.clone().framed(c)))
+    policy: &PolicyFile,
+) -> io::Result<Option<Connection>> {
+    match policy.handle_connection(connection).await? {
+        None => Ok(None),
+        Some(conn) => Ok(Some(Codec::new_as_server(keys).framed(conn))),
+    }
 }

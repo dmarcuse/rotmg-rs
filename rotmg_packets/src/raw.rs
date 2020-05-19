@@ -7,7 +7,7 @@ use bytes::{Buf, Bytes};
 /// - Packet ID (1 byte)
 /// - Packet contents (all remaining bytes)
 // TODO: investigate using smallvec here to reduce heap usage
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct RawPacket(Bytes);
 
 impl RawPacket {
@@ -42,8 +42,8 @@ impl RawPacket {
         self.0[4]
     }
 
-    /// Get the contents of this packet, excluding the length and packet ID
-    pub fn contents(&self) -> &[u8] {
+    /// Get the payload of the packet - contents excluding length and ID header
+    pub fn payload(&self) -> &[u8] {
         &self.0[5..]
     }
 }

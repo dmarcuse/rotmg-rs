@@ -1,49 +1,129 @@
-use bytes::{Buf, Bytes};
+use std::convert::TryInto;
+use std::fmt::{self, Debug, Formatter};
 
-/// A raw ROTMG network packet
+/// An error wrapping bytes as a packet
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum InvalidPacket {
+    /// The header is too short (<5 bytes).
+    #[error("Packet header too short - need at least 5 bytes: {0:x?}")]
+    HeaderTooShort(Box<[u8]>),
+
+    /// The length encoded in the packet header doesn't match the actual length
+    /// of the packet.
+    #[error("Invalid packet header - encoded length is {encoded_len} but actual length is {actual_len}: {data:x?}")]
+    HeaderInvalid {
+        encoded_len: u32,
+        actual_len: usize,
+        data: Box<[u8]>,
+    },
+}
+
+/// A raw ROTMG packet.
 ///
-/// Packets consist of the following three parts, from beginning to end:
-/// - Total packet length (4 bytes, big endian)
-/// - Packet ID (1 byte)
-/// - Packet contents (all remaining bytes)
-// TODO: investigate using smallvec here to reduce heap usage
-#[derive(PartialEq, Eq, Clone)]
-pub struct RawPacket(Bytes);
+/// Since this type is implemented as a newtype over `[u8]` it is unsized and
+/// should be used via a reference, box, or other form of indirection.
+#[repr(transparent)]
+#[derive(PartialEq, Eq)]
+pub struct RawPacket([u8]);
 
 impl RawPacket {
-    /// Create a new `RawPacket` from the given bytes.
-    ///
-    /// This function will panic if the provided data is less than 5 bytes long,
-    /// or if the length doesn't match the one encoded in the packet data.
-    pub fn new(data: Bytes) -> Self {
-        assert!(data.len() >= 5, "invalid packet length: {} < 5", data.len());
+    fn validate_header(bytes: &[u8]) -> Result<(), InvalidPacket> {
+        if bytes.len() < 5 {
+            return Err(InvalidPacket::HeaderTooShort(
+                bytes.to_vec().into_boxed_slice(),
+            ));
+        }
 
-        assert_eq!(
-            data.len(),
-            data.bytes().get_u32() as usize,
-            "actual packet length doesn't match length encoded in contents"
-        );
+        let encoded_len = u32::from_be_bytes(bytes[..4].try_into().unwrap());
+        if encoded_len as usize != bytes.len() {
+            return Err(InvalidPacket::HeaderInvalid {
+                encoded_len,
+                actual_len: bytes.len(),
+                data: bytes.to_vec().into_boxed_slice(),
+            });
+        }
 
-        Self(data)
+        Ok(())
     }
 
-    /// Unwrap this packet into the underlying bytes
-    pub fn into_bytes(self) -> Bytes {
-        self.0
+    /// Attempt to convert a slice of bytes to a `RawPacket` reference.
+    pub fn from_slice(bytes: &[u8]) -> Result<&Self, InvalidPacket> {
+        Self::validate_header(bytes)?;
+        // SAFETY: safe because [u8] and RawPacket have the same layout
+        Ok(unsafe { &*(bytes as *const [u8] as *const RawPacket) })
     }
 
-    /// Get the bytes of this packet, including the length and packet ID
+    /// Attempt to convert a mutable slice of bytes to a `RawPacket` reference.
+    pub fn from_mut(bytes: &mut [u8]) -> Result<&mut Self, InvalidPacket> {
+        Self::validate_header(bytes)?;
+        // SAFETY: safe because [u8] and RawPacket have the same layout
+        Ok(unsafe { &mut *(bytes as *mut [u8] as *mut RawPacket) })
+    }
+
+    /// Attempt to convert a boxed slice of bytes to a boxed `RawPacket`.
+    pub fn from_box(bytes: Box<[u8]>) -> Result<Box<Self>, InvalidPacket> {
+        Self::validate_header(&bytes)?;
+        // SAFETY: safe because [u8] and RawPacket have the same layout
+        Ok(unsafe { std::mem::transmute(bytes) })
+    }
+
+    /// Get the contents of this packet, including the header.
     pub fn bytes(&self) -> &[u8] {
         &self.0
     }
 
-    /// Get the ID for this packet
-    pub fn packet_id(&self) -> u8 {
-        self.0[4]
-    }
-
-    /// Get the payload of the packet - contents excluding length and ID header
+    /// Get the contents of this packet, excluding the header.
     pub fn payload(&self) -> &[u8] {
         &self.0[5..]
+    }
+
+    /// Get a mutable reference to the contents of this packet, excluding the
+    /// header.
+    pub fn payload_mut(&mut self) -> &mut [u8] {
+        &mut self.0[5..]
+    }
+
+    /// Get the raw ID of this packet.
+    pub fn id(&self) -> u8 {
+        self.0[4]
+    }
+}
+
+impl ToOwned for RawPacket {
+    type Owned = Box<RawPacket>;
+
+    fn to_owned(&self) -> Self::Owned {
+        // SAFETY: safe because [u8] and RawPacket have the same layout
+        unsafe { std::mem::transmute(self.bytes().to_vec().into_boxed_slice()) }
+    }
+}
+
+impl Clone for Box<RawPacket> {
+    fn clone(&self) -> Self {
+        let bytes = self.bytes().to_vec().into_boxed_slice();
+        RawPacket::from_box(bytes).unwrap()
+    }
+}
+
+impl Debug for RawPacket {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("RawPacket").field(&self.bytes()).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RawPacket;
+
+    #[test]
+    fn test_raw_packet_parsing() {
+        let data = &[0, 0, 0, 6, 5, 6];
+        let pkt = RawPacket::from_slice(&data[..]).unwrap();
+        assert_eq!(data, pkt.bytes());
+        let pkt = pkt.to_owned();
+        assert_eq!(data, pkt.bytes());
+        let boxed = RawPacket::from_box(data.to_vec().into_boxed_slice()).unwrap();
+        assert_eq!(data, boxed.bytes());
+        assert_eq!(pkt, boxed);
     }
 }

@@ -1,90 +1,127 @@
 use crate::rc4::Rc4;
-use bytes::{Buf, BufMut, BytesMut};
+use futures::io::ErrorKind;
 use rotmg_packets::RawPacket;
 use std::io;
-use tokio_util::codec::{Decoder, Encoder};
+use tokio::prelude::*;
 
-/// ROTMG network connection codec.
-///
-/// This codec frames ROTMG packets and handles encryption/decryption of packet
-/// payloads.
-pub struct Codec {
-    recv_rc4: Rc4,
-    send_rc4: Rc4,
+/// An encoder for writing ROTMG packets.
+pub struct Encoder<T> {
+    stream: T,
+    cipher: Rc4,
 }
 
-impl Codec {
-    fn create_ciphers(keys: &[u8]) -> (Rc4, Rc4) {
-        assert!(!keys.is_empty(), "key cannot be empty");
-        assert_eq!(keys.len() % 2, 0, "key length must be even");
-
-        let (key0, key1) = keys.split_at(keys.len() / 2);
-        (Rc4::new(key0), Rc4::new(key1))
+impl<T: AsyncWrite + Unpin> Encoder<T> {
+    pub fn new(stream: T, cipher: Rc4) -> Self {
+        Self { stream, cipher }
     }
 
-    /// Create a new codec with the given RC4 keys, as a server.
+    /// Write the given packet to this encoder.
     ///
-    /// The raw binary keys should be used, decoded from hexadecimal.
-    pub fn new_as_server(keys: &[u8]) -> Self {
-        let (recv_rc4, send_rc4) = Self::create_ciphers(keys);
-        Self { recv_rc4, send_rc4 }
-    }
-
-    /// Create a new codec with the given RC4 keys, as a client.
-    ///
-    /// The raw binary keys should be used, decoded from hexadecimal.
-    pub fn new_as_client(keys: &[u8]) -> Self {
-        let (send_rc4, recv_rc4) = Self::create_ciphers(keys);
-        Self { recv_rc4, send_rc4 }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum CodecError {
-    #[error("IO error")]
-    IoError(#[from] io::Error),
-
-    #[error("Packet had invalid length: {0}")]
-    InvalidLength(usize),
-}
-
-impl Decoder for Codec {
-    type Item = RawPacket;
-    type Error = CodecError;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 4 {
-            // we can't frame the packet until we have the length
-            return Ok(None);
-        }
-
-        let length = src.bytes().get_u32() as usize;
-
-        // the smallest legal packet is just a length + ID, 5 bytes
-        if length < 5 {
-            return Err(CodecError::InvalidLength(length));
-        }
-
-        if src.len() < length {
-            // we haven't received the full packet yet
-            return Ok(None);
-        }
-
-        // full packet received, remove from buffer and decrypt contents
-        let mut packet = src.split_to(length);
-        self.recv_rc4.process(&mut packet[5..]);
-        Ok(Some(RawPacket::new(packet.freeze())))
-    }
-}
-
-impl Encoder<RawPacket> for Codec {
-    type Error = CodecError;
-
-    fn encode(&mut self, item: RawPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        // encrypt packet payload, then write entire packet to buffer
-        let mut packet = item.into_bytes().to_vec();
-        self.send_rc4.process(&mut packet[5..]);
-        dst.put_slice(&packet);
+    /// An error leaves the encoder in an undefined state, and future attempts
+    /// to write with the same encoder are likely to fail.
+    pub async fn send(&mut self, mut packet: impl AsMut<RawPacket>) -> io::Result<()> {
+        let packet = packet.as_mut();
+        self.cipher.process(packet.payload_mut());
+        self.stream.write_all(packet.bytes()).await?;
         Ok(())
+    }
+
+    /// Get a reference to the underlying data stream.
+    pub fn inner(&self) -> &T {
+        &self.stream
+    }
+
+    /// Unwrap the underlying stream.
+    pub fn into_inner(self) -> T {
+        self.stream
+    }
+}
+
+/// A decoder for reading ROTMG packets.
+pub struct Decoder<T> {
+    stream: T,
+    cipher: Rc4,
+    buffer: Vec<u8>,
+}
+
+/// An error returned when a `Decoder` attempts to decode an excessively large
+/// packet.
+///
+/// When a packet larger than the limit (`Decoder::MAX_PACKET_SIZE`) is
+/// encountered, this error will be returned instead.
+#[error("Packet size limit of {limit} bytes was exceeded: {size} bytes specified")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub struct PacketSizeLimitExceeded {
+    pub limit: u32,
+    pub size: u32,
+}
+
+impl<T: AsyncRead + Unpin> Decoder<T> {
+    /// Maximum allowed packet size, in bytes.
+    ///
+    /// Although the layout of packets allows sizes of up to 2^32 bytes, a
+    /// reasonable upper bound is set to prevent malicious connections
+    /// attempting to exhaust system memory.
+    pub const MAX_PACKET_SIZE: u32 = 10 * 1024 * 1024;
+
+    pub fn new(stream: T, cipher: Rc4) -> Self {
+        Self {
+            stream,
+            cipher,
+            buffer: Vec::new(),
+        }
+    }
+
+    /// Read a packet from this decoder.
+    ///
+    /// A value of `None` indicates that the stream has closed and no further
+    /// packets can be read.
+    ///
+    /// An error leaves the decoder in an undefined state, and future attempts
+    /// to read with the same decoder are likely to fail.
+    pub async fn recv(&mut self) -> io::Result<Option<&mut RawPacket>> {
+        // receive packet length
+        let mut len_buf = [0, 0, 0, 0];
+        let len = match self.stream.read_exact(&mut len_buf).await {
+            Ok(_) => u32::from_be_bytes(len_buf),
+            Err(e) if e.kind() == ErrorKind::UnexpectedEof => return Ok(None),
+            Err(e) => return Err(e),
+        };
+
+        if len > Self::MAX_PACKET_SIZE {
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                PacketSizeLimitExceeded {
+                    limit: Self::MAX_PACKET_SIZE,
+                    size: len,
+                },
+            ));
+        }
+
+        // receive rest of packet
+        self.buffer.resize(len as usize, 0);
+        self.buffer[..4].copy_from_slice(&len_buf);
+        match self.stream.read_exact(&mut self.buffer[4..]).await {
+            Ok(_) => {}
+            Err(e) if e.kind() == ErrorKind::UnexpectedEof => return Ok(None),
+            Err(e) => return Err(e),
+        }
+
+        // decrypt payload and wrap packet
+        self.cipher.process(&mut self.buffer[5..]);
+        match RawPacket::from_mut(&mut self.buffer) {
+            Ok(p) => Ok(Some(p)),
+            Err(e) => Err(io::Error::new(ErrorKind::InvalidData, e)),
+        }
+    }
+
+    /// Get a reference to the underlying stream.
+    pub fn inner(&self) -> &T {
+        &self.stream
+    }
+
+    /// Unwrap the underlying stream.
+    pub fn into_inner(self) -> T {
+        self.stream
     }
 }

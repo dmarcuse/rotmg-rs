@@ -1,6 +1,6 @@
 use futures::try_join;
 use rotmg_networking::{accept_with_policy, connect, PolicyFile};
-use rotmg_packets::RawPacket;
+use rotmg_packets::raw::RawPacket;
 use std::net::{Ipv4Addr, Shutdown};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};

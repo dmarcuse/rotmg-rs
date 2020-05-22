@@ -1,3 +1,16 @@
+//! Raw, unparsed ROTMG packets.
+//!
+//! Raw packets represent packets that have been framed and decrypted so that
+//! the binary payload and ID can be accessed, but aren't necessarily parsed.
+//! These are primarily intended as an intermediary form, for cases where a
+//! packet may not need to be parsed, or parsing may not be possible.
+//!
+//! The `RawPacket` type is represented as `[u8]` - an unsized byte slice.
+//! Consequently, it should generally be used behind a layer of indirection -
+//! such as a reference or `Box` - and works similarly to types like `str`. An
+//! unowned packet could be represented as `&RawPacket` or `&mut RawPacket`, and
+//! an owned packet could be represented as `Box<RawPacket>`.
+
 use std::convert::TryInto;
 use std::fmt::{self, Debug, Formatter};
 

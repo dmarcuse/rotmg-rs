@@ -1,6 +1,6 @@
 use crate::rc4::Rc4;
 use futures::io::ErrorKind;
-use rotmg_packets::RawPacket;
+use rotmg_packets::raw::RawPacket;
 use std::io;
 use tokio::prelude::*;
 

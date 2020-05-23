@@ -9,3 +9,4 @@ license = "Apache-2.0"
 thiserror = "1.0.18"
 serde = { version = "1.0.110", features = [ "derive" ] }
 rand = "0.7.3"
+num-traits = "0.2.11"

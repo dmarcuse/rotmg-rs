@@ -4,6 +4,7 @@ mod str;
 mod vec;
 
 use crate::raw::RawPacket;
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::str::Utf8Error;
 
@@ -17,13 +18,13 @@ pub enum PacketFormatError {
     Utf8Error(#[from] Utf8Error),
 
     #[error("Field too large: cannot convert {length} to {repr}")]
-    FieldTooLarge { length: usize, repr: &'static str },
+    FieldTooLarge { length: String, repr: &'static str },
 }
 
 impl PacketFormatError {
-    fn too_large<T>(length: usize) -> Self {
+    fn too_large<T>(length: &dyn Display) -> Self {
         Self::FieldTooLarge {
-            length,
+            length: length.to_string(),
             repr: std::any::type_name::<T>(),
         }
     }
@@ -85,4 +86,61 @@ pub trait ToPacketBytes<T> {
 
 /// A dummy type indicating that a dynamically sized type is prefixed with a
 /// length field.
-pub struct LengthPrefixed<N, T>(PhantomData<N>, PhantomData<T>);
+pub struct WithLen<N, T>(PhantomData<N>, PhantomData<T>);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! roundtrip_tests {
+        ( $( $name:ident < $type:ty > ( $init:expr ) ),* $(,)? ) => {
+            $(
+                #[test]
+                fn $name() {
+                    let original: <$type as FromPacketBytes>::Output = $init;
+                    let mut packet = vec![];
+                    <$type as ToPacketBytes<_>>::to_packet(original.clone(), &mut packet).unwrap();
+                    let mut reader = PacketReader { remaining: &packet };
+                    let parsed = <$type as FromPacketBytes>::from_packet(&mut reader).unwrap();
+                    assert_eq!(
+                        original,
+                        parsed,
+                        "expected {:?}, got {:?} with encoded repr {:#x?}",
+                        original,
+                        parsed,
+                        packet
+                    );
+                }
+            )*
+        }
+    }
+
+    roundtrip_tests! {
+        // primitives
+        test_roundtrip_bool<bool>(rand::random()),
+        test_roundtrip_u8<u8>(rand::random()),
+        test_roundtrip_u16<u16>(rand::random()),
+        test_roundtrip_u32<u32>(rand::random()),
+        test_roundtrip_u64<u64>(rand::random()),
+        test_roundtrip_i8<i8>(rand::random()),
+        test_roundtrip_i16<i16>(rand::random()),
+        test_roundtrip_i32<i32>(rand::random()),
+        test_roundtrip_i64<i64>(rand::random()),
+
+        // option
+        test_roundtrip_none<Option<i32>>(None),
+        test_roundtrip_some_i32<Option<i32>>(Some(rand::random())),
+
+        // str
+        test_roundtrip_str_u16<WithLen<u16, &str>>("hello world"),
+        test_roundtrip_str_u32<WithLen<u32, &str>>("hello world"),
+
+        // vec
+        test_roundtrip_vec_u16<WithLen<u16, Vec<i32>>>(vec![1, 3, -42]),
+        test_roundtrip_vec_u32<WithLen<u32, Vec<i64>>>(vec![i64::MAX, 42, 8]),
+
+        // nested dynamically sized types
+        test_roundtrip_complex_none<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(None),
+        test_roundtrip_complex_some<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(Some(vec!["hello", "world"])),
+    }
+}

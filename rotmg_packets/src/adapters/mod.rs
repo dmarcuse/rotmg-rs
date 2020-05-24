@@ -1,6 +1,7 @@
 mod option;
 mod primitives;
 mod str;
+mod unit;
 mod vec;
 
 use crate::raw::RawPacket;
@@ -19,6 +20,9 @@ pub enum PacketFormatError {
 
     #[error("Field too large: cannot convert {length} to {repr}")]
     FieldTooLarge { length: String, repr: &'static str },
+
+    #[error("No known StatType associated with value {0}")]
+    UnknownStatType(u8),
 }
 
 impl PacketFormatError {

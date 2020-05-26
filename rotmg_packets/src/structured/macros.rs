@@ -26,13 +26,12 @@ macro_rules! define_packet_data_adapter {
     }
 }
 
-/// Define a packet data type and associated adapters.
+/// Define packet data types and associated adapters.
 macro_rules! define_packet_data {
     (
         $(
             $( #[ $attrs:meta ] )*
-            $name:ident
-                $( ( @ $arg:ident ) )?
+            $name:ident $( ( @ $arg:ident ) )?
             {
                 $(
                     $( #[ $fattrs:meta ] )*
@@ -43,7 +42,7 @@ macro_rules! define_packet_data {
     ) => {
         $(
             $( #[ $attrs ] )*
-            #[derive(Debug, Clone, PartialEq)]
+            #[derive(Debug, Clone, PartialEq, Default)]
             pub struct $name <'a> {
                 $(
                     $( #[ $fattrs ] )*
@@ -106,6 +105,57 @@ macro_rules! define_stat_types {
             pub fn is_string(self) -> bool {
                 Self::STRING_TYPES[self as u8 as usize]
             }
+        }
+    };
+}
+
+/// Define packet types
+macro_rules! define_packets {
+    (
+        $(
+            $( #[ $mattrs:meta ] )*
+            $module:ident {
+                $(
+                    $( #[ $attrs:meta ] )*
+                    $name:ident $( ( @ $arg:ident ) )? {
+                        $(
+                            $( #[ $fattrs:meta ] )*
+                            $fname:ident : $fty:ty
+                        ),* $(,)?
+                    }
+                ),* $(,)?
+            }
+        ),* $(,)?
+
+    ) => {
+        // define the packet structures and adapters
+        $(
+            $( #[ $mattrs ] )*
+            pub mod $module {
+                #![allow(unused_imports)]
+                use super::*;
+
+                define_packet_data! {
+                    $(
+                        $( #[ $attrs ] )*
+                        $name $( ( @ $arg ) )? {
+                            $(
+                                $( #[ $fattrs ] )*
+                                $fname : $fty
+                            ),*
+                        }
+                    ),*
+                }
+            }
+        )*
+
+        // define the PacketType enum
+        #[repr(u8)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+        pub enum PacketType {
+            $( $(
+                $name ,
+            )* )*
         }
     };
 }

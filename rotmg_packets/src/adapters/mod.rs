@@ -1,3 +1,4 @@
+mod byteslice;
 mod option;
 mod primitives;
 mod str;
@@ -68,6 +69,13 @@ impl<'a> PacketReader<'a> {
             Ok(taken)
         }
     }
+
+    /// Take all remaining bytes from this reader.
+    ///
+    /// If no bytes remain, returns an empty slice.
+    pub fn take_all(&mut self) -> &'a [u8] {
+        std::mem::take(&mut self.remaining)
+    }
 }
 
 /// Data that can be read from a packet.
@@ -92,20 +100,26 @@ pub trait ToPacketBytes<T> {
 /// length field.
 pub struct WithLen<N, T>(PhantomData<N>, PhantomData<T>);
 
+/// A dummy type indicating that a dynamically sized type should capture all
+/// remaining bytes.
+pub struct CaptureRemaining<T>(PhantomData<T>);
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     macro_rules! roundtrip_tests {
-        ( $( $name:ident < $type:ty > ( $init:expr ) ),* $(,)? ) => {
+        ( $( $name:ident < $type:ty > ( $init:expr ) ; )* ) => {
             $(
                 #[test]
                 fn $name() {
                     let original: <$type as FromPacketBytes>::Output = $init;
                     let mut packet = vec![];
                     <$type as ToPacketBytes<_>>::to_packet(original.clone(), &mut packet).unwrap();
+
                     let mut reader = PacketReader { remaining: &packet };
                     let parsed = <$type as FromPacketBytes>::from_packet(&mut reader).unwrap();
+
                     assert_eq!(
                         original,
                         parsed,
@@ -121,30 +135,35 @@ mod tests {
 
     roundtrip_tests! {
         // primitives
-        test_roundtrip_bool<bool>(rand::random()),
-        test_roundtrip_u8<u8>(rand::random()),
-        test_roundtrip_u16<u16>(rand::random()),
-        test_roundtrip_u32<u32>(rand::random()),
-        test_roundtrip_u64<u64>(rand::random()),
-        test_roundtrip_i8<i8>(rand::random()),
-        test_roundtrip_i16<i16>(rand::random()),
-        test_roundtrip_i32<i32>(rand::random()),
-        test_roundtrip_i64<i64>(rand::random()),
+        test_roundtrip_bool<bool>(rand::random());
+        test_roundtrip_u8<u8>(rand::random());
+        test_roundtrip_u16<u16>(rand::random());
+        test_roundtrip_u32<u32>(rand::random());
+        test_roundtrip_u64<u64>(rand::random());
+        test_roundtrip_i8<i8>(rand::random());
+        test_roundtrip_i16<i16>(rand::random());
+        test_roundtrip_i32<i32>(rand::random());
+        test_roundtrip_i64<i64>(rand::random());
 
         // option
-        test_roundtrip_none<Option<i32>>(None),
-        test_roundtrip_some_i32<Option<i32>>(Some(rand::random())),
+        test_roundtrip_none<Option<i32>>(None);
+        test_roundtrip_some_i32<Option<i32>>(Some(rand::random()));
 
         // str
-        test_roundtrip_str_u16<WithLen<u16, &str>>("hello world"),
-        test_roundtrip_str_u32<WithLen<u32, &str>>("hello world"),
+        test_roundtrip_str_u16<WithLen<u16, &str>>("hello world");
+        test_roundtrip_str_u32<WithLen<u32, &str>>("hello world");
 
         // vec
-        test_roundtrip_vec_u16<WithLen<u16, Vec<i32>>>(vec![1, 3, -42]),
-        test_roundtrip_vec_u32<WithLen<u32, Vec<i64>>>(vec![i64::MAX, 42, 8]),
+        test_roundtrip_vec_u16<WithLen<u16, Vec<i32>>>(vec![1, 3, -42]);
+        test_roundtrip_vec_u32<WithLen<u32, Vec<i64>>>(vec![i64::MAX, 42, 8]);
+
+        // byteslice
+        test_roundtrip_byteslice_u16<WithLen<u16, &[u8]>>(b"hello world");
+        test_roundtrip_byteslice_u32<WithLen<u32, &[u8]>>(b"hello world");
+        test_roundtrip_byteslice_remaining<CaptureRemaining<&[u8]>>(b"hello world");
 
         // nested dynamically sized types
-        test_roundtrip_complex_none<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(None),
-        test_roundtrip_complex_some<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(Some(vec!["hello", "world"])),
+        test_roundtrip_complex_none<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(None);
+        test_roundtrip_complex_some<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(Some(vec!["hello", "world"]));
     }
 }

@@ -135,8 +135,8 @@ mod definitions {
                 max_players: u16,
                 connection_guid: WithLen<u16, &'a str>,
                 game_opened_time: u32,
-                client_xml: WithLen<u16, &'a str>,
-                extra_xml: WithLen<u16, &'a str>,
+                client_xml: WithLen<u16, Vec<WithLen<u32, &'a str>>>,
+                extra_xml: WithLen<u16, Vec<WithLen<u32, &'a str>>>,
             },
             NameResult {
                 success: bool,

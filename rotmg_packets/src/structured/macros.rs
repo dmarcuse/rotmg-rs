@@ -157,5 +157,12 @@ macro_rules! define_packets {
                 $name ,
             )* )*
         }
+
+        impl PacketType {
+            /// All values of the `PacketType` enum.
+            pub const VALUES: &'static [PacketType] = &[
+                $( $( Self :: $name, )* )*
+            ];
+        }
     };
 }

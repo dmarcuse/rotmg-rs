@@ -1,9 +1,9 @@
 use super::*;
 
-impl FromPacketBytes<'_> for () {
+impl FromPacketBytes for () {
     type Output = ();
 
-    fn from_packet(_: &mut PacketReader<'_>) -> Result<(), Box<PacketFormatError>> {
+    fn from_packet(_: &mut PacketReader) -> Result<(), Box<PacketFormatError>> {
         Ok(())
     }
 }

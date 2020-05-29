@@ -5,7 +5,7 @@ use std::mem::size_of;
 macro_rules! numeric_impls {
     ( $( $type:ty ),* $(,)? ) => {
         $(
-            impl FromPacketBytes<'_> for $type {
+            impl FromPacketBytes for $type {
                 type Output = $type;
 
                 fn from_packet(reader: &mut PacketReader) -> Result<$type, Box<PacketFormatError>> {
@@ -31,7 +31,7 @@ numeric_impls! {
     f32, f64
 }
 
-impl FromPacketBytes<'_> for bool {
+impl FromPacketBytes for bool {
     type Output = bool;
 
     fn from_packet(reader: &mut PacketReader) -> Result<bool, Box<PacketFormatError>> {

@@ -4,13 +4,11 @@ use crate::adapters::*;
 
 // Define trivial types
 define_packet_data! {
-    #[derive(Eq, Copy)]
     GroundTileData {
         x: i16,
         y: i16,
         tile_type: u16,
     },
-    #[derive(Copy)]
     MoveRecord {
         time: u32,
         x: f32,
@@ -18,27 +16,24 @@ define_packet_data! {
     },
     ObjectData {
         object_type: u16,
-        status: ObjectStatusData<'a>,
+        status: ObjectStatusData,
     },
     ObjectStatusData {
         object_id: u32,
-        pos: WorldPosData<'a>,
-        stats: WithLen<u16, Vec<StatData<'a>>>,
+        pos: WorldPosData,
+        stats: WithLen<u16, Vec<StatData>>,
     },
-    #[derive(Eq, Copy)]
     SlotObjectData {
         object_id: u32,
         slot_id: u8,
         object_type: u32,
     },
-    #[derive(Eq, Copy)]
     TradeItem {
         item: u32,
         slot_type: u32,
         tradeable: bool,
         included: bool,
     },
-    #[derive(Copy)]
     WorldPosData {
         x: f32,
         y: f32,
@@ -148,29 +143,29 @@ define_stat_types! {
     PROJECTILE_LIFE_MULT: i32 = 103,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StatData<'a> {
-    String(StatType, &'a str),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StatData {
+    String(StatType, String),
     Integer(StatType, i32),
 }
 
-impl<'a> FromPacketBytes<'a> for StatData<'a> {
-    type Output = StatData<'a>;
+impl FromPacketBytes for StatData {
+    type Output = StatData;
 
-    fn from_packet(reader: &mut PacketReader<'a>) -> Result<Self::Output, Box<PacketFormatError>> {
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>> {
         let typ = u8::from_packet(reader)?;
         let typ = StatType::from_byte(typ)
             .ok_or_else(|| Box::new(PacketFormatError::UnknownStatType(typ)))?;
 
         if typ.is_string() {
-            <WithLen<u16, &str>>::from_packet(reader).map(|s| StatData::String(typ, s))
+            <WithLen<u16, String>>::from_packet(reader).map(|s| StatData::String(typ, s))
         } else {
             i32::from_packet(reader).map(|i| StatData::Integer(typ, i))
         }
     }
 }
 
-impl<'a, T: Into<StatData<'a>>> ToPacketBytes<T> for StatData<'a> {
+impl<T: Into<StatData>> ToPacketBytes<T> for StatData {
     fn to_packet(value: T, packet: &mut Vec<u8>) -> Result<(), Box<PacketFormatError>> {
         let value = value.into();
         match value {
@@ -181,7 +176,7 @@ impl<'a, T: Into<StatData<'a>>> ToPacketBytes<T> for StatData<'a> {
             }
             StatData::String(typ, s) => {
                 u8::to_packet(typ.to_byte(), packet)?;
-                <WithLen<u16, &str>>::to_packet(s, packet)?;
+                <WithLen<u16, String>>::to_packet(s, packet)?;
                 Ok(())
             }
         }

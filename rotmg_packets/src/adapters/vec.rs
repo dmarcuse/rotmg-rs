@@ -1,15 +1,15 @@
 use super::*;
 use num_traits::{FromPrimitive, ToPrimitive, Unsigned};
 
-impl<'a, N, T> FromPacketBytes<'a> for WithLen<N, Vec<T>>
+impl<N, T> FromPacketBytes for WithLen<N, Vec<T>>
 where
-    T: FromPacketBytes<'a>,
-    N: FromPacketBytes<'a>,
+    T: FromPacketBytes,
+    N: FromPacketBytes,
     N::Output: ToPrimitive + Unsigned + Display,
 {
     type Output = Vec<T::Output>;
 
-    fn from_packet(reader: &mut PacketReader<'a>) -> Result<Self::Output, Box<PacketFormatError>> {
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>> {
         let len = N::from_packet(reader)?;
         let len = len
             .to_usize()
@@ -35,6 +35,21 @@ where
         for value in values {
             T::to_packet(value, packet)?;
         }
+        Ok(())
+    }
+}
+
+impl FromPacketBytes for CaptureRemaining<Vec<u8>> {
+    type Output = Vec<u8>;
+
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>> {
+        Ok(reader.take_all().to_vec())
+    }
+}
+
+impl<T: AsRef<[u8]>> ToPacketBytes<T> for CaptureRemaining<Vec<u8>> {
+    fn to_packet(value: T, packet: &mut Vec<u8>) -> Result<(), Box<PacketFormatError>> {
+        packet.extend_from_slice(value.as_ref());
         Ok(())
     }
 }

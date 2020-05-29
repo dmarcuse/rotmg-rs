@@ -1,9 +1,9 @@
 use super::*;
 
-impl<'a, T: FromPacketBytes<'a>> FromPacketBytes<'a> for Option<T> {
+impl<T: FromPacketBytes> FromPacketBytes for Option<T> {
     type Output = Option<T::Output>;
 
-    fn from_packet(reader: &mut PacketReader<'a>) -> Result<Self::Output, Box<PacketFormatError>> {
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>> {
         if reader.is_empty() {
             Ok(None)
         } else {

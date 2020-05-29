@@ -16,7 +16,7 @@ mod definitions {
             ActivePet { instance_id: u32 },
             DeletePetMessage { pet_id: u32 },
             HatchPetMessage {
-                pet_name: WithLen<u16, &'a str>,
+                pet_name: WithLen<u16, String>,
                 pet_skin: u32,
                 item_type: u32,
             },
@@ -25,7 +25,7 @@ mod definitions {
             // uncategorized
             AccountList {
                 account_list_id: u32,
-                account_ids: WithLen<u16, Vec<WithLen<u16, &'a str>>>,
+                account_ids: WithLen<u16, Vec<WithLen<u16, String>>>,
                 lock_action: u32,
             },
             AllyShoot {
@@ -36,7 +36,7 @@ mod definitions {
                 bard: bool,
             },
             Aoe {
-                pos: WorldPosData<'a>,
+                pos: WorldPosData,
                 radius: f32,
                 damage: u16,
                 effect: u8,
@@ -48,10 +48,10 @@ mod definitions {
             BuyResult {
                 // TODO: constants
                 result: i32,
-                result_string: WithLen<u16, &'a str>,
+                result_string: WithLen<u16, String>,
             },
             ClientStat {
-                name: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
                 value: u32,
             },
             CreateSuccess {
@@ -60,7 +60,7 @@ mod definitions {
             },
             Damage {
                 target_id: u32,
-                effects: WithLen<u8, &'a [u8]>,
+                effects: WithLen<u8, Vec<u8>>,
                 damage_amount: u16,
                 kill: bool,
                 armor_pierce: bool,
@@ -68,9 +68,9 @@ mod definitions {
                 object_id: u32,
             },
             Death {
-                account_id: WithLen<u16, &'a str>,
+                account_id: WithLen<u16, String>,
                 char_id: u32,
-                killed_by: WithLen<u16, &'a str>,
+                killed_by: WithLen<u16, String>,
                 zombie_type: u32,
                 zombie_id: i32,
             },
@@ -78,7 +78,7 @@ mod definitions {
                 bullet_id: u8,
                 owner_id: u32,
                 bullet_type: u8,
-                starting_pos: WorldPosData<'a>,
+                starting_pos: WorldPosData,
                 angle: f32,
                 damage: u16,
                 num_shots: Option<u8>,
@@ -92,55 +92,55 @@ mod definitions {
             Failure {
                 // TODO: constants
                 error_id: u32,
-                error_description: WithLen<u16, &'a str>,
-                error_place: WithLen<u16, &'a str>,
-                error_connection_id: WithLen<u16, &'a str>
+                error_description: WithLen<u16, String>,
+                error_place: WithLen<u16, String>,
+                error_connection_id: WithLen<u16, String>
             },
             File {
-                filename: WithLen<u16, &'a str>,
-                file: WithLen<u32, &'a str>,
+                filename: WithLen<u16, String>,
+                file: WithLen<u32, String>,
             },
             GlobalNotification {
                 typ: u32,
-                text: WithLen<u16, &'a str>,
+                text: WithLen<u16, String>,
             },
             Goto {
                 object_id: u32,
-                pos: WorldPosData<'a>,
+                pos: WorldPosData,
             },
             GuildResult {
                 success: bool,
-                line_builder_json: WithLen<u16, &'a str>,
+                line_builder_json: WithLen<u16, String>,
             },
             InvResult { result: i32 },
             InvitedToGuild {
-                name: WithLen<u16, &'a str>,
-                guild_name: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
+                guild_name: WithLen<u16, String>,
             },
             KeyInfoResponse {
-                name: WithLen<u16, &'a str>,
-                description: WithLen<u16, &'a str>,
-                creator: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
+                description: WithLen<u16, String>,
+                creator: WithLen<u16, String>,
             },
             MapInfo {
                 width: u32,
                 height: i32,
-                name: WithLen<u16, &'a str>,
-                display_name: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
+                display_name: WithLen<u16, String>,
                 fp: u32,
                 background: u32,
                 difficulty: u32,
                 allow_player_teleport: bool,
                 show_displays: bool,
                 max_players: u16,
-                connection_guid: WithLen<u16, &'a str>,
+                connection_guid: WithLen<u16, String>,
                 game_opened_time: u32,
-                client_xml: WithLen<u16, Vec<WithLen<u32, &'a str>>>,
-                extra_xml: WithLen<u16, Vec<WithLen<u32, &'a str>>>,
+                client_xml: WithLen<u16, Vec<WithLen<u32, String>>>,
+                extra_xml: WithLen<u16, Vec<WithLen<u32, String>>>,
             },
             NameResult {
                 success: bool,
-                error_text: WithLen<u16, &'a str>,
+                error_text: WithLen<u16, String>,
             },
             NewAbilityMessage {
                 typ: i32,
@@ -148,18 +148,18 @@ mod definitions {
             NewTick {
                 tick_id: u32,
                 tick_time: u32,
-                statuses: WithLen<u16, Vec<ObjectStatusData<'a>>>
+                statuses: WithLen<u16, Vec<ObjectStatusData>>
             },
             Notification {
                 object_id: u32,
-                message: WithLen<u16, &'a str>,
+                message: WithLen<u16, String>,
                 color: u32,
             },
             PasswordPrompt { clean_password_status: i32 },
             Pic {
                 width: u32,
                 height: u32,
-                bitmap: CaptureRemaining<&'a [u8]>,
+                bitmap: CaptureRemaining<Vec<u8>>,
             },
             Ping { serial: u32 },
             PlaySound {
@@ -169,20 +169,20 @@ mod definitions {
             QuestObjId { object_id: u32 },
             QuestRedeemResponse {
                 ok: bool,
-                message: WithLen<u16, &'a str>,
+                message: WithLen<u16, String>,
             },
             RealmHeroesResponse {
                 number_of_realm_heroes: u32
             },
             Reconnect {
-                name: WithLen<u16, &'a str>,
-                host: WithLen<u16, &'a str>,
-                stats: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
+                host: WithLen<u16, String>,
+                stats: WithLen<u16, String>,
                 port: u32,
                 game_id: u32,
                 key_time: u32,
                 is_from_arena: bool,
-                key: WithLen<u16, &'a [u8]>,
+                key: WithLen<u16, Vec<u8>>,
             },
             ReskinUnlock {
                 skin_id: u32,
@@ -192,7 +192,7 @@ mod definitions {
                 bullet_id: u8,
                 owner_id: u32,
                 container_type: u32,
-                starting_pos: WorldPosData<'a>,
+                starting_pos: WorldPosData,
                 angle: f32,
                 damage: u16,
             },
@@ -200,19 +200,19 @@ mod definitions {
                 // TODO: constants
                 effect_type: u8,
                 target_object_id: u32,
-                pos1: WorldPosData<'a>,
-                pos2: WorldPosData<'a>,
+                pos1: WorldPosData,
+                pos2: WorldPosData,
                 color: u32,
                 duration: f32,
             },
             Text {
-                name: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
                 object_id: u32,
                 num_stars: u32,
                 bubble_time: u8,
-                recipient: WithLen<u16, &'a str>,
-                text: WithLen<u16, &'a str>,
-                clean_text: WithLen<u16, &'a str>,
+                recipient: WithLen<u16, String>,
+                text: WithLen<u16, String>,
+                clean_text: WithLen<u16, String>,
                 is_supporter: bool,
                 star_bg: u32,
             },
@@ -223,17 +223,17 @@ mod definitions {
             TradeChanged { offer: WithLen<u16, Vec<bool>> },
             TradeDone {
                 code: u32,
-                description: WithLen<u16, &'a str>,
+                description: WithLen<u16, String>,
             },
-            TradeRequested { name: WithLen<u16, &'a str> },
+            TradeRequested { name: WithLen<u16, String> },
             TradeStart {
-                my_items: WithLen<u16, Vec<TradeItem<'a>>>,
-                your_name: WithLen<u16, &'a str>,
-                your_items: WithLen<u16, Vec<TradeItem<'a>>>,
+                my_items: WithLen<u16, Vec<TradeItem>>,
+                your_name: WithLen<u16, String>,
+                your_items: WithLen<u16, Vec<TradeItem>>,
             },
             Update {
-                tiles: WithLen<u16, Vec<GroundTileData<'a>>>,
-                new_objs: WithLen<u16, Vec<ObjectData<'a>>>,
+                tiles: WithLen<u16, Vec<GroundTileData>>,
+                new_objs: WithLen<u16, Vec<ObjectData>>,
                 drops: WithLen<u16, Vec<i32>>,
             },
             VerifyEmail { _empty: () }
@@ -244,9 +244,9 @@ mod definitions {
             // arena packets
             EnterArena { currency: u32 },
             QuestRedeem {
-                quest_id: WithLen<u16, &'a str>,
+                quest_id: WithLen<u16, String>,
                 item: u32,
-                slots: WithLen<u16, Vec<SlotObjectData<'a>>>,
+                slots: WithLen<u16, Vec<SlotObjectData>>,
             },
 
             // pet packets
@@ -256,12 +256,12 @@ mod definitions {
                 pid2: u32,
                 object_id: u32,
                 payment_trans_type: u8,
-                slots: WithLen<u16, Vec<SlotObjectData<'a>>>,
+                slots: WithLen<u16, Vec<SlotObjectData>>,
             },
             ReskinPet {
                 pet_instance_id: u32,
                 picked_new_pet_type: u32,
-                slot: SlotObjectData<'a>,
+                slot: SlotObjectData,
             },
 
             // uncategorized
@@ -275,7 +275,7 @@ mod definitions {
             },
             AoeAck {
                 time: u32,
-                position: WorldPosData<'a>,
+                position: WorldPosData,
             },
             Buy {
                 object_id: u32,
@@ -283,7 +283,7 @@ mod definitions {
             },
             CancelTrade { _empty: () },
             ChangeGuildRank {
-                name: WithLen<u16, &'a str>,
+                name: WithLen<u16, String>,
                 guild_rank: u32,
             },
             ChangePetSkin {
@@ -293,13 +293,13 @@ mod definitions {
             },
             ChangeTrade { offer: WithLen<u16, Vec<bool>> },
             CheckCredits { _empty: () },
-            ChooseName { name: WithLen<u16, &'a str> },
+            ChooseName { name: WithLen<u16, String> },
             Create {
                 class_type: u16,
                 skin_type: u16,
                 is_challenger: bool,
             },
-            CreateGuild { name: WithLen<u16, &'a str> },
+            CreateGuild { name: WithLen<u16, String> },
             EditAccountList {
                 account_list_id: u32,
                 add: bool,
@@ -316,38 +316,38 @@ mod definitions {
             GotoAck { time: u32 },
             GroundDamage {
                 time: u32,
-                position: WorldPosData<'a>,
+                position: WorldPosData,
             },
-            GuildInvite { name: WithLen<u16, &'a str> },
-            GuildRemove { name: WithLen<u16, &'a str> },
+            GuildInvite { name: WithLen<u16, String> },
+            GuildRemove { name: WithLen<u16, String> },
             Hello {
-                build_version: WithLen<u16, &'a str>,
+                build_version: WithLen<u16, String>,
                 game_id: u32,
-                guid: WithLen<u16, &'a str>,
+                guid: WithLen<u16, String>,
                 rand1: u32,
-                password: WithLen<u16, &'a str>,
+                password: WithLen<u16, String>,
                 rand2: u32,
-                secret: WithLen<u16, &'a str>,
+                secret: WithLen<u16, String>,
                 key_time: u32,
-                key: WithLen<u16, &'a [u8]>,
-                map_json: WithLen<u32, &'a str>,
-                entry_tag: WithLen<u16, &'a str>,
-                game_net: WithLen<u16, &'a str>,
-                game_net_user_id: WithLen<u16, &'a str>,
-                play_platform: WithLen<u16, &'a str>,
-                platform_token: WithLen<u16, &'a str>,
-                user_token: WithLen<u16, &'a str>,
-                unknown: WithLen<u16, &'a str>,
-                previous_connection_guid: WithLen<u16, &'a str>,
+                key: WithLen<u16, Vec<u8>>,
+                map_json: WithLen<u32, String>,
+                entry_tag: WithLen<u16, String>,
+                game_net: WithLen<u16, String>,
+                game_net_user_id: WithLen<u16, String>,
+                play_platform: WithLen<u16, String>,
+                platform_token: WithLen<u16, String>,
+                user_token: WithLen<u16, String>,
+                unknown: WithLen<u16, String>,
+                previous_connection_guid: WithLen<u16, String>,
             },
-            InvDrop { slot_object: SlotObjectData<'a> },
+            InvDrop { slot_object: SlotObjectData },
             InvSwap {
                 time: u32,
-                position: WorldPosData<'a>,
-                slot1: SlotObjectData<'a>,
-                slot2: SlotObjectData<'a>,
+                position: WorldPosData,
+                slot1: SlotObjectData,
+                slot2: SlotObjectData,
             },
-            JoinGuild { guild_name: WithLen<u16, &'a str> },
+            JoinGuild { guild_name: WithLen<u16, String> },
             KeyInfoRequest { item_type: u32 },
             Load {
                 char_id: u32,
@@ -357,8 +357,8 @@ mod definitions {
             Move {
                 tick_id: u32,
                 time: u32,
-                new_position: WorldPosData<'a>,
-                records: WithLen<u16, Vec<WorldPosData<'a>>>,
+                new_position: WorldPosData,
+                records: WithLen<u16, Vec<WorldPosData>>,
             },
             OtherHit {
                 time: u32,
@@ -374,17 +374,17 @@ mod definitions {
                 time: u32,
                 bullet_id: u8,
                 container_type: u16,
-                starting_pos: WorldPosData<'a>,
+                starting_pos: WorldPosData,
                 angle: f32,
                 speed_mult: u16,
                 life_mult: u16,
             },
-            PlayerText { text: WithLen<u16, &'a str> },
+            PlayerText { text: WithLen<u16, String> },
             Pong {
                 serial: u32,
                 time: u32,
             },
-            RequestTrade { name: WithLen<u16, &'a str> },
+            RequestTrade { name: WithLen<u16, String> },
             ResetDailyQuests { empty: () },
             Reskin { skin_id: u32 },
             SetCondition {
@@ -400,8 +400,8 @@ mod definitions {
             Teleport { object_id: u32 },
             UseItem {
                 time: u32,
-                slot: SlotObjectData<'a>,
-                item_use_pos: WorldPosData<'a>,
+                slot: SlotObjectData,
+                item_use_pos: WorldPosData,
                 use_type: u8,
             },
             UsePortal { object_id: u32 },

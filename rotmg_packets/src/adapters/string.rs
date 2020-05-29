@@ -2,24 +2,24 @@ use super::*;
 use num_traits::{FromPrimitive, ToPrimitive, Unsigned};
 use std::fmt::Display;
 
-impl<'a, N> FromPacketBytes<'a> for WithLen<N, &'a str>
+impl<N> FromPacketBytes for WithLen<N, String>
 where
-    N: FromPacketBytes<'a>,
+    N: FromPacketBytes,
     N::Output: ToPrimitive + Unsigned + Display,
 {
-    type Output = &'a str;
+    type Output = String;
 
-    fn from_packet(reader: &mut PacketReader<'a>) -> Result<Self::Output, Box<PacketFormatError>> {
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>> {
         let len = N::from_packet(reader)?;
         let len = len
             .to_usize()
             .ok_or_else(|| PacketFormatError::too_large::<N>(&len))?;
-        let bytes = reader.take(len)?;
-        Ok(std::str::from_utf8(bytes).map_err(|e| Box::new(e.into()))?)
+        let bytes = reader.take(len)?.to_vec();
+        Ok(String::from_utf8(bytes).map_err(|e| Box::new(e.into()))?)
     }
 }
 
-impl<N, T: AsRef<str>> ToPacketBytes<T> for WithLen<N, &str>
+impl<N, T: AsRef<str>> ToPacketBytes<T> for WithLen<N, String>
 where
     N: ToPacketBytes<N> + FromPrimitive + Unsigned + Display,
 {

@@ -2,19 +2,19 @@
 macro_rules! define_packet_data_adapter {
     ( $name:ident ( @ManualAdapters ) $rest:tt ) => {};
     ( $name:ident { $( $fname:ident : $fty:ty ),* $(,)? }) => {
-        impl<'a> $crate::adapters::FromPacketBytes<'a> for $name <'a> {
-            type Output = $name <'a>;
+        impl $crate::adapters::FromPacketBytes for $name {
+            type Output = $name;
 
             fn from_packet(
-                reader: &mut $crate::adapters::PacketReader<'a>
+                reader: &mut $crate::adapters::PacketReader
             ) -> Result<Self::Output, Box<$crate::adapters::PacketFormatError>> {
-                $( let $fname = <$fty as $crate::adapters::FromPacketBytes<'a>>::from_packet(reader)?; )*
+                $( let $fname = <$fty as $crate::adapters::FromPacketBytes>::from_packet(reader)?; )*
                 Ok(Self { $( $fname ),* })
             }
         }
 
-        impl<'a, T: Into<$name<'a>>>
-            $crate::adapters::ToPacketBytes<T> for $name <'a> {
+        impl<T: Into<$name>>
+            $crate::adapters::ToPacketBytes<T> for $name {
             fn to_packet(
                 value: T, packet: &mut Vec<u8>
             ) -> Result<(), Box<$crate::adapters::PacketFormatError>> {
@@ -43,10 +43,10 @@ macro_rules! define_packet_data {
         $(
             $( #[ $attrs ] )*
             #[derive(Debug, Clone, PartialEq, Default)]
-            pub struct $name <'a> {
+            pub struct $name {
                 $(
                     $( #[ $fattrs ] )*
-                    pub $fname : <$fty as $crate::adapters::FromPacketBytes<'a>>::Output
+                    pub $fname : <$fty as $crate::adapters::FromPacketBytes>::Output
                 ),*
             }
 

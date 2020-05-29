@@ -1,14 +1,13 @@
-mod byteslice;
 mod option;
 mod primitives;
-mod str;
+mod string;
 mod unit;
 mod vec;
 
 use crate::raw::RawPacket;
 use std::fmt::Display;
 use std::marker::PhantomData;
-use std::str::Utf8Error;
+use std::string::FromUtf8Error;
 
 /// An error reading or writing a packet.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -17,7 +16,7 @@ pub enum PacketFormatError {
     UnexpectedEnd(usize),
 
     #[error("Invalid UTF-8: {0}")]
-    Utf8Error(#[from] Utf8Error),
+    Utf8Error(#[from] FromUtf8Error),
 
     #[error("Field too large: cannot convert {length} to {repr}")]
     FieldTooLarge { length: String, repr: &'static str },
@@ -82,11 +81,11 @@ impl<'a> PacketReader<'a> {
 ///
 /// Note that the type this is implemented on need not match the actual returned
 /// type.
-pub trait FromPacketBytes<'a> {
-    type Output;
+pub trait FromPacketBytes {
+    type Output: Sized + 'static;
 
     /// Read data from the given packet.
-    fn from_packet(reader: &mut PacketReader<'a>) -> Result<Self::Output, Box<PacketFormatError>>;
+    fn from_packet(reader: &mut PacketReader) -> Result<Self::Output, Box<PacketFormatError>>;
 }
 
 /// Data that can be written to a packet.
@@ -150,20 +149,16 @@ mod tests {
         test_roundtrip_some_i32<Option<i32>>(Some(rand::random()));
 
         // str
-        test_roundtrip_str_u16<WithLen<u16, &str>>("hello world");
-        test_roundtrip_str_u32<WithLen<u32, &str>>("hello world");
+        test_roundtrip_str_u16<WithLen<u16, String>>("hello world".to_string());
+        test_roundtrip_str_u32<WithLen<u32, String>>("hello world".to_string());
 
         // vec
         test_roundtrip_vec_u16<WithLen<u16, Vec<i32>>>(vec![1, 3, -42]);
         test_roundtrip_vec_u32<WithLen<u32, Vec<i64>>>(vec![i64::MAX, 42, 8]);
-
-        // byteslice
-        test_roundtrip_byteslice_u16<WithLen<u16, &[u8]>>(b"hello world");
-        test_roundtrip_byteslice_u32<WithLen<u32, &[u8]>>(b"hello world");
-        test_roundtrip_byteslice_remaining<CaptureRemaining<&[u8]>>(b"hello world");
+        test_roundtrip_vec_remaining<CaptureRemaining<Vec<u8>>>(b"hello world".to_vec());
 
         // nested dynamically sized types
-        test_roundtrip_complex_none<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(None);
-        test_roundtrip_complex_some<Option<WithLen<u16, Vec<WithLen<u32, &str>>>>>(Some(vec!["hello", "world"]));
+        test_roundtrip_complex_none<Option<WithLen<u16, Vec<WithLen<u32, String>>>>>(None);
+        test_roundtrip_complex_some<Option<WithLen<u16, Vec<WithLen<u32, String>>>>>(Some(vec!["hello".to_string(), "world".to_string()]));
     }
 }

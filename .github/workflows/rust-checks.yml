@@ -10,14 +10,22 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@master
-      - name: Run clippy
+      - name: Run clippy (default features)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-      - name: Run unit tests
+      - name: Run clippy (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy --all-features
+      - name: Run unit tests (default features)
         uses: actions-rs/cargo@v1
         with:
           command: test
+      - name: Run unit tests (all features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test --all-features
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:

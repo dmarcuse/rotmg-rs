@@ -1,10 +1,10 @@
 use crate::structured::packets::PacketType;
 use bimap::BiHashMap;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Mappings of internal `PacketType`s to ROTMG packet IDs.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PacketMappings(pub BiHashMap<PacketType, u8>);
 
 impl PacketMappings {

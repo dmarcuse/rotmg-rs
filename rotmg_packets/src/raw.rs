@@ -25,8 +25,13 @@ pub enum InvalidPacket {
     /// of the packet.
     #[error("Invalid packet header - encoded length is {encoded_len} but actual length is {actual_len}: {data:x?}")]
     HeaderInvalid {
+        /// The length that was encoded in the packet data.
         encoded_len: u32,
+
+        /// The actual length of the packet.
         actual_len: usize,
+
+        /// The complete contents of the offending packet.
         data: Box<[u8]>,
     },
 }

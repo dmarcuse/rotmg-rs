@@ -143,9 +143,15 @@ define_stat_types! {
     PROJECTILE_LIFE_MULT: i32 = 103,
 }
 
+/// ROTMG stat data - a `StatType` associated with either an integer (`i32`) or
+/// a string (`String`).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum StatData {
+    /// String stat data.
     String(StatType, String),
+
+    /// Integer stat data.
     Integer(StatType, i32),
 }
 

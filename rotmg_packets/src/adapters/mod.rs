@@ -1,3 +1,11 @@
+//! Traits and basic implementations of packet encoding/decoding functionality.
+//!
+//! This module exports two main traits: `FromPacketBytes` and `ToPacketBytes`.
+//! These are used to specify how various types are encoded/decoded in the ROTMG
+//! network protocol. Implementations are also provided for primitives and other
+//! fundamental types, which are then composed to provide implementations for
+//! more complex types - the packets themselves.
+
 mod option;
 mod primitives;
 mod string;
@@ -12,15 +20,26 @@ use std::string::FromUtf8Error;
 /// An error reading or writing a packet.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum PacketFormatError {
+    /// The end of the packet was encountered while more data was expected.
     #[error("Expected at least {0} more bytes")]
     UnexpectedEnd(usize),
 
+    /// A string contained invalid UTF-8.
     #[error("Invalid UTF-8: {0}")]
     Utf8Error(#[from] FromUtf8Error),
 
+    /// A field was too large to be encoded/decoded within the constraints of
+    /// the required integer type.
     #[error("Field too large: cannot convert {length} to {repr}")]
-    FieldTooLarge { length: String, repr: &'static str },
+    FieldTooLarge {
+        /// The length that was being encoded.
+        length: String,
+        /// The type that was being used to encode the length.
+        repr: &'static str,
+    },
 
+    /// An unrecognized `StatType` was encountered, making it impossible to
+    /// determine how to parse the remaining data.
     #[error("No known StatType associated with value {0}")]
     UnknownStatType(u8),
 }
@@ -82,6 +101,7 @@ impl<'a> PacketReader<'a> {
 /// Note that the type this is implemented on need not match the actual returned
 /// type.
 pub trait FromPacketBytes {
+    /// The output type of this decoder.
     type Output: Sized + 'static;
 
     /// Read data from the given packet.

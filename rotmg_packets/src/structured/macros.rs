@@ -43,6 +43,8 @@ macro_rules! define_packet_data {
         $(
             $( #[ $attrs ] )*
             #[derive(Debug, Clone, PartialEq, Default)]
+            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+            #[allow(missing_docs)]
             pub struct $name {
                 $(
                     $( #[ $fattrs ] )*
@@ -70,9 +72,14 @@ macro_rules! is_string {
 macro_rules! define_stat_types {
     ( $( $name:ident : $type:ident = $value:literal ),* $(,)? ) => {
         /// The type of a stat specified by a `StatData`.
+        ///
+        /// Most stat types are associated with integer data, but some are
+        /// associated with strings - such as `StatType::NAME_STAT`. This can be
+        /// checked with `StatType::is_string`.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[repr(u8)]
-        #[allow(non_camel_case_types)]
+        #[allow(non_camel_case_types, missing_docs)]
         pub enum StatType {
             $( $name = $value ),*
         }
@@ -102,7 +109,7 @@ macro_rules! define_stat_types {
             }
 
             /// Check whether the given stat type is a string.
-            pub fn is_string(self) -> bool {
+            pub const fn is_string(self) -> bool {
                 Self::STRING_TYPES[self as u8 as usize]
             }
         }
@@ -117,12 +124,7 @@ macro_rules! define_packets {
             $module:ident {
                 $(
                     $( #[ $attrs:meta ] )*
-                    $name:ident $( ( @ $arg:ident ) )? {
-                        $(
-                            $( #[ $fattrs:meta ] )*
-                            $fname:ident : $fty:ty
-                        ),* $(,)?
-                    }
+                    $name:ident $( ( @ $arg:ident ) )? $body:tt
                 ),* $(,)?
             }
         ),* $(,)?
@@ -138,20 +140,23 @@ macro_rules! define_packets {
                 define_packet_data! {
                     $(
                         $( #[ $attrs ] )*
-                        $name $( ( @ $arg ) )? {
-                            $(
-                                $( #[ $fattrs ] )*
-                                $fname : $fty
-                            ),*
-                        }
+                        $name $( ( @ $arg ) )? $body
                     ),*
                 }
             }
         )*
 
         // define the PacketType enum
+        /// A ROTMG packet type.
+        ///
+        /// This represents an internal equivalent to ROTMG packet IDs. However,
+        /// while they're represented as a byte, they aren't equal to the actual
+        /// ROTMG packet IDs. Instead, a `PacketMappings` instance should be
+        /// used to convert between the two.
         #[repr(u8)]
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[allow(missing_docs)]
         pub enum PacketType {
             $( $(
                 $name ,

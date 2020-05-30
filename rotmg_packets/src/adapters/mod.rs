@@ -42,6 +42,11 @@ pub enum PacketFormatError {
     /// determine how to parse the remaining data.
     #[error("No known StatType associated with value {0}")]
     UnknownStatType(u8),
+
+    /// Couldn't identify the `PacketType` for a packet due to incomplete
+    /// mappings.
+    #[error("No known mapping for packet ID {0}")]
+    UnmappedID(u8),
 }
 
 impl PacketFormatError {

@@ -143,6 +143,32 @@ macro_rules! define_packets {
                         $name $( ( @ $arg ) )? $body
                     ),*
                 }
+
+                // packet trait implementations
+                $(
+                    impl sealed::Sealed for $name {}
+
+                    impl StructuredPacket for $name {
+                        const TYPE: PacketType = PacketType::$name;
+                    }
+
+                    impl AnyPacket for $name {
+                        fn packet_type(&self) -> PacketType {
+                            PacketType::$name
+                        }
+
+                        fn into_raw(self: Box<Self>) -> Result<Box<RawPacket>, Box<PacketFormatError>> {
+                            let mut packet = vec![0u8; 4];
+                            packet.push(PacketType::$name as u8);
+                            $name::to_packet(*self, &mut packet)?;
+
+                            let len = (packet.len() as u32).to_be_bytes();
+                            packet[..4].copy_from_slice(&len);
+
+                            Ok(RawPacket::from_box(packet.into_boxed_slice()).unwrap())
+                        }
+                    }
+                )*
             }
         )*
 
@@ -168,6 +194,21 @@ macro_rules! define_packets {
             pub const VALUES: &'static [PacketType] = &[
                 $( $( Self :: $name, )* )*
             ];
+
+            pub(crate) fn parse_bytes(
+                self,
+                reader: &mut PacketReader
+            ) -> Result<Box<dyn AnyPacket>, Box<PacketFormatError>> {
+                match self {
+                    $( $(
+                        PacketType::$name => {
+                            $module::$name::from_packet(reader).map(|p| -> Box<dyn AnyPacket> {
+                                Box::new(p)
+                            })
+                        },
+                    )* )*
+                }
+            }
         }
     };
 }

@@ -1,7 +1,36 @@
 //! Structured packet definitions, representing parsed packets that can be more
 //! easily manipulated.
 
+use crate::adapters::{FromPacketBytes, PacketFormatError, ToPacketBytes};
+use crate::raw::RawPacket;
+pub use definitions::{client, server, PacketType};
+use std::any::Any;
+use std::fmt::Debug;
+
+mod sealed {
+    pub trait Sealed {}
+}
+
+/// A trait implemented by structured packet types.
+pub trait StructuredPacket
+where
+    Self: 'static + Sized + sealed::Sealed + FromPacketBytes<Output = Self> + ToPacketBytes<Self>,
+{
+    /// The `PacketType` associated with this packet.
+    const TYPE: PacketType;
+}
+
+/// A trait representing any structured packet type, supporting downcasting.
+pub trait AnyPacket: sealed::Sealed + Any + Debug {
+    /// Get the type of this packet.
+    fn packet_type(&self) -> PacketType;
+
+    /// Convert this structured packet into a raw packet.
+    fn into_raw(self: Box<Self>) -> Result<Box<RawPacket>, Box<PacketFormatError>>;
+}
+
 mod definitions {
+    use super::*;
     use crate::adapters::*;
     use crate::structured::data::*;
 
@@ -408,5 +437,3 @@ mod definitions {
         },
     }
 }
-
-pub use definitions::{client, server, PacketType};

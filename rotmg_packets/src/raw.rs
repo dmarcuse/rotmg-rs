@@ -11,6 +11,9 @@
 //! unowned packet could be represented as `&RawPacket` or `&mut RawPacket`, and
 //! an owned packet could be represented as `Box<RawPacket>`.
 
+use crate::adapters::{PacketFormatError, PacketReader};
+use crate::structured::packets::AnyPacket;
+use crate::PacketMappings;
 use std::convert::TryInto;
 use std::fmt::{self, Debug, Formatter};
 
@@ -104,6 +107,27 @@ impl RawPacket {
     /// Get the raw ID of this packet.
     pub fn id(&self) -> u8 {
         self.0[4]
+    }
+
+    /// Attempt to parse this raw packet into a structured packet using the
+    /// given mappings.
+    ///
+    /// On success, the packet will be returned, along with any remaining bytes
+    /// that weren't captured (leftover bytes usually indicates out-of-date or
+    /// incorrect packet definitions). If the packet ID isn't known or there's
+    /// an error parsing the packet, the error will be returned instead.
+    #[allow(clippy::type_complexity)]
+    pub fn parse(
+        &self,
+        mappings: &PacketMappings,
+    ) -> Result<(Box<dyn AnyPacket>, &[u8]), Box<PacketFormatError>> {
+        let typ = mappings
+            .to_internal(self.id())
+            .ok_or_else(|| Box::new(PacketFormatError::UnmappedID(self.id())))?;
+
+        let mut reader = PacketReader::new(self);
+        let parsed = typ.parse_bytes(&mut reader)?;
+        Ok((parsed, reader.take_all()))
     }
 }
 

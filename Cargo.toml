@@ -3,6 +3,7 @@ members = [
 	"rotmg_packets",
 	"rotmg_extractor",
 	"rotmg_networking",
+	"rotmg_proxy",
 ]
 
 # don't include debug symbols for dependencies, even in debug mode

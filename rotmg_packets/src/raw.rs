@@ -14,7 +14,7 @@
 use crate::adapters::{PacketFormatError, PacketReader};
 use crate::structured::packets::AnyPacket;
 use crate::PacketMappings;
-use std::convert::TryInto;
+use std::convert::{AsMut, TryInto};
 use std::fmt::{self, Debug, Formatter};
 
 /// An error wrapping bytes as a packet
@@ -150,6 +150,12 @@ impl Clone for Box<RawPacket> {
 impl Debug for RawPacket {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("RawPacket").field(&self.bytes()).finish()
+    }
+}
+
+impl AsMut<RawPacket> for RawPacket {
+    fn as_mut(&mut self) -> &mut RawPacket {
+        self
     }
 }
 

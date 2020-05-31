@@ -1,0 +1,22 @@
+[package]
+name = "rotmg_proxy"
+version = "0.1.0"
+authors = ["Dana Marcuse <dana@marcuse.us>"]
+edition = "2018"
+license = "Apache-2.0"
+
+[dependencies]
+rotmg_packets = { path = "../rotmg_packets", features = [ "serde" ] }
+rotmg_networking = { path = "../rotmg_networking" }
+rotmg_extractor = { path = "../rotmg_extractor" }
+tokio = { version = "0.2.21", features = [ "macros", "fs", "dns" ] }
+reqwest = "0.10.6"
+log = "0.4.8"
+env_logger = "0.7.1"
+structopt = "0.3.14"
+serde = { version = "1.0.111", features = [ "derive" ] }
+serde_json = "1.0.53"
+serde-xml-rs = "0.4.0"
+anyhow = "1.0.31"
+dirs = "2.0.2"
+hex = "0.4.2"

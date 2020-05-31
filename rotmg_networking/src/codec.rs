@@ -115,6 +115,11 @@ impl<T: AsyncRead + Unpin> Decoder<T> {
         }
     }
 
+    /// Transposed form of `recv`.
+    pub async fn maybe_recv(&mut self) -> Option<io::Result<&mut RawPacket>> {
+        self.recv().await.transpose()
+    }
+
     /// Get a reference to the underlying stream.
     pub fn inner(&self) -> &T {
         &self.stream

@@ -1,0 +1,9 @@
+[package]
+name = "rotmg_extractor"
+version = "0.1.0"
+authors = ["Dana Marcuse <dana@marcuse.us>"]
+edition = "2018"
+license = "Apache-2.0"
+
+[dependencies]
+thiserror = "1.0.19"

@@ -12,7 +12,9 @@
 
 pub mod adapters;
 mod mappings;
+mod parameters;
 pub mod raw;
 pub mod structured;
 
 pub use mappings::PacketMappings;
+pub use parameters::Parameters;

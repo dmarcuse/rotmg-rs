@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"rotmg_packets",
+	"rotmg_extractor",
 	"rotmg_networking",
 ]
 
@@ -8,3 +9,8 @@ members = [
 # this substantially reduces debug mode binary sizes
 [profile.dev.package."*"]
 debug = false
+
+# enable extra optimizations for release mode
+[profile.release]
+lto = true
+codegen-units = 1

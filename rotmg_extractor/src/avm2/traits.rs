@@ -197,17 +197,23 @@ pub enum TraitSlotValue<'a> {
 }
 
 impl<'a> TraitSlotValue<'a> {
-    pub fn as_str(self) -> Option<&'a str> {
+    pub fn as_str(self) -> Result<&'a str, ParseError> {
         match self {
-            TraitSlotValue::String(s) => Some(s),
-            _ => None,
+            TraitSlotValue::String(s) => Ok(s),
+            _ => Err(ParseError::WrongTraitType {
+                value: format!("{:?}", self),
+                typ: "&str",
+            }),
         }
     }
 
-    pub fn as_int(self) -> Option<i32> {
+    pub fn as_int(self) -> Result<i32, ParseError> {
         match self {
-            TraitSlotValue::Int(i) => Some(i),
-            _ => None,
+            TraitSlotValue::Int(i) => Ok(i),
+            _ => Err(ParseError::WrongTraitType {
+                value: format!("{:?}", self),
+                typ: "i32",
+            }),
         }
     }
 }

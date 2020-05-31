@@ -17,4 +17,4 @@ pub mod raw;
 pub mod structured;
 
 pub use mappings::PacketMappings;
-pub use parameters::Parameters;
+pub use parameters::{BasicParameters, Parameters};

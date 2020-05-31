@@ -42,14 +42,14 @@ mod definitions {
             ImminentArenaWave { current_runtime: u32 },
 
             // pet packets
-            ActivePet { instance_id: u32 },
-            DeletePetMessage { pet_id: u32 },
-            HatchPetMessage {
+            // ActivePet { instance_id: u32 },
+            DeletePet { pet_id: u32 },
+            HatchPet {
                 pet_name: WithLen<u16, String>,
                 pet_skin: u32,
                 item_type: u32,
             },
-            PetYard { typ: u32 },
+            PetYardUpdate { typ: u32 },
 
             // uncategorized
             AccountList {
@@ -113,7 +113,7 @@ mod definitions {
                 num_shots: Option<u8>,
                 angle_inc: Option<f32>,
             },
-            EvolvedPet {
+            EvolvePet {
                 pet_id: u32,
                 initial_skin: u32,
                 final_skin: u32,
@@ -171,7 +171,7 @@ mod definitions {
                 success: bool,
                 error_text: WithLen<u16, String>,
             },
-            NewAbilityMessage {
+            NewAbility {
                 typ: i32,
             },
             NewTick {
@@ -200,7 +200,7 @@ mod definitions {
                 ok: bool,
                 message: WithLen<u16, String>,
             },
-            RealmHeroesResponse {
+            RealmHeroLeftMsg {
                 number_of_realm_heroes: u32
             },
             Reconnect {
@@ -279,6 +279,16 @@ mod definitions {
             },
 
             // pet packets
+            PetChangeFormMsg {
+                instance_id: u32,
+                picked_new_pet_type: u32,
+                item: SlotObjectData
+            },
+            PetChangeSkinMsg {
+                pet_id: u32,
+                skin_type: u32,
+                currency: u32
+            },
             PetUpgradeRequest {
                 pet_trans_type: u8,
                 pid1: u32,
@@ -286,11 +296,6 @@ mod definitions {
                 object_id: u32,
                 payment_trans_type: u8,
                 slots: WithLen<u16, Vec<SlotObjectData>>,
-            },
-            ReskinPet {
-                pet_instance_id: u32,
-                picked_new_pet_type: u32,
-                slot: SlotObjectData,
             },
 
             // uncategorized
@@ -315,11 +320,6 @@ mod definitions {
                 name: WithLen<u16, String>,
                 guild_rank: u32,
             },
-            ChangePetSkin {
-                pet_id: u32,
-                skin_type: u32,
-                currency: u32,
-            },
             ChangeTrade { offer: WithLen<u16, Vec<bool>> },
             CheckCredits { _empty: () },
             ChooseName { name: WithLen<u16, String> },
@@ -341,7 +341,7 @@ mod definitions {
                 kill: bool,
             },
             Escape { empty: () },
-            GoToQuestRoom { empty: () },
+            QuestRoomMsg { empty: () },
             GotoAck { time: u32 },
             GroundDamage {
                 time: u32,

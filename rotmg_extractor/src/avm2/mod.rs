@@ -30,6 +30,9 @@ pub enum ParseError {
 
     #[error("Flag value {value} ({value:#x}) is invalid for type {typ}")]
     InvalidFlag { value: u8, typ: &'static str },
+
+    #[error("Trait type mismatch - tried to get {typ} from {value}")]
+    WrongTraitType { value: String, typ: &'static str },
 }
 
 pub struct Reader<'a> {

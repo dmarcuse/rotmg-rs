@@ -195,6 +195,13 @@ macro_rules! define_packets {
                 $( $( Self :: $name, )* )*
             ];
 
+            /// Get the name for this packet type (e.g. `Hello`).
+            pub fn name(self) -> &'static str {
+                match self {
+                    $( $(  Self::$name => stringify!($name), )* )*
+                }
+            }
+
             pub(crate) fn parse_bytes(
                 self,
                 reader: &mut PacketReader
